@@ -7,11 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.MenuAction;
-import net.runelite.api.ScriptID;
+import net.runelite.api.GameState;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
@@ -21,6 +19,7 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.util.Text;
 
@@ -56,9 +55,16 @@ public class ButlerInfoPlugin extends Plugin
 	private InfoBoxManager infoBoxManager;
 
 	@Inject
+	private OverlayManager overlayManager;
+
+	@Inject
+	private ServantOverlay servantOverlay;
+
+	@Inject
 	private ItemManager itemManager;
 
 	@Inject
+	@Getter
 	private PlayerOwnedHouse playerOwnedHouse;
 
 	@Inject
@@ -75,7 +81,7 @@ public class ButlerInfoPlugin extends Plugin
 	@Setter
 	private Servant servant;
 
-	private BankRunTimer bankRunTimer;
+	private BankTripTimer bankTripTimer;
 
 	private ItemCounter itemCounter;
 
@@ -102,6 +108,7 @@ public class ButlerInfoPlugin extends Plugin
 		eventBus.register(playerOwnedHouse);
 		eventBus.register(dialogManager);
 		keyManager.registerKeyListener(dialogManager);
+		overlayManager.add(servantOverlay);
 	}
 
 	@Override
@@ -110,11 +117,24 @@ public class ButlerInfoPlugin extends Plugin
 		eventBus.register(playerOwnedHouse);
 		eventBus.unregister(dialogManager);
 		keyManager.unregisterKeyListener(dialogManager);
+		overlayManager.remove(servantOverlay);
+	}
+
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged event)
+	{
+		if (event.getGameState() == GameState.LOADING && config.shouldResetSession())
+		{
+			servant = null;
+		}
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick tick)
 	{
+		if (servant == null) {
+			return;
+		}
 		Widget npcDialog = client.getWidget(WidgetInfo.DIALOG_NPC_TEXT);
 		if (npcDialog == null) {
 			return;
@@ -123,20 +143,20 @@ public class ButlerInfoPlugin extends Plugin
 		final Matcher itemAmountMatcher = ITEM_AMOUNT_MATCHER.matcher(text);
 		final Matcher notEnoughInBankMatcher = NOT_ENOUGH_IN_BANK_MATCHER.matcher(text);
 		if (itemAmountMatcher.find()) {
-			servant.finishBankRun(Integer.parseInt(itemAmountMatcher.group(1)));
+			servant.finishBankTrip(Integer.parseInt(itemAmountMatcher.group(1)));
 		}
 		if (notEnoughInBankMatcher.find()) {
 			if (!isBankTimerReset()) {
 				setBankTimerReset(true);
-				removeBankRunTimer(false);
+				removeBankTripTimer(false);
 				servant.setTripsUntilPayment(servant.getPrevTripsUntilPayment());
 			}
 		}
 		if (text.equals(SINGLE_ITEM_TEXT)) {
-			servant.finishBankRun(1);
+			servant.finishBankTrip(1);
 		}
 		if (text.equals(NO_EXTRA_ITEMS_TEXT)) {
-			servant.finishBankRun(0);
+			servant.finishBankTrip(0);
 		}
 	}
 
@@ -146,10 +166,11 @@ public class ButlerInfoPlugin extends Plugin
 		if(event.getNpc() == null || servant != null) {
 			return;
 		}
-		Optional<Servant> servantOptional = Servant.getByNpcId(event.getNpc().getId());
-		servantOptional.ifPresent(s -> {
-			s.setPlugin(this);
-			setServant(s);
+		Optional<ServantType> typeOptional = ServantType.getByNpcId(event.getNpc().getId());
+		typeOptional.ifPresent(type -> {
+			Servant servant = new Servant(type);
+			servant.setPlugin(this);
+			setServant(servant);
 		});
 	}
 
@@ -164,18 +185,18 @@ public class ButlerInfoPlugin extends Plugin
 					renderAll();
 				}
 				break;
-			case "showItemCountInfobox":
-				if (config.showItemCountInfobox()) {
+			case "showItemCount":
+				if (config.showItemCount()) {
 					renderItemCounter();
 				} else {
 					removeItemCounter();
 				}
 				break;
-			case "showBankRunTimer":
-				if (config.showBankRunTimer()) {
-					renderBankRunTimer();
+			case "showBankTripTimer":
+				if (config.showBankTripTimer()) {
+					renderBankTripTimer();
 				} else {
-					removeBankRunTimer(true);
+					removeBankTripTimer(true);
 				}
 				break;
 			case "showTripsUntilPayment":
@@ -189,12 +210,12 @@ public class ButlerInfoPlugin extends Plugin
 	}
 
 	public void renderItemCounter() {
-		if (!config.showItemCountInfobox() || (config.onlyInBuildingMode() && !playerOwnedHouse.isBuildingMode())) {
+		if (!config.showItemCount() || (config.onlyInBuildingMode() && !playerOwnedHouse.isBuildingMode())) {
 			return;
 		}
 
 		removeItemCounter();
-		if (servant.getItemAmount() <= 0) {
+		if (servant.getItemAmountHeld() <= 0) {
 			return;
 		}
 
@@ -214,38 +235,38 @@ public class ButlerInfoPlugin extends Plugin
 		itemCounter = null;
 	}
 
-	public void startBankRunTimer() {
+	public void startBankTripTimer() {
 		if (servant == null) {
 			return;
 		}
-		bankRunTimer = new BankRunTimer(this, servant, itemManager);
-		renderBankRunTimer();
+		bankTripTimer = new BankTripTimer(this, servant, itemManager);
+		renderBankTripTimer();
 	}
 
-	private void renderBankRunTimer()
+	private void renderBankTripTimer()
 	{
-		if (!config.showBankRunTimer() || (config.onlyInBuildingMode() && !playerOwnedHouse.isBuildingMode())) {
+		if (!config.showBankTripTimer() || (config.onlyInBuildingMode() && !playerOwnedHouse.isBuildingMode())) {
 			return;
 		}
-		if (bankRunTimer == null)
+		if (bankTripTimer == null)
 		{
 			return;
 		}
 
-		removeBankRunTimer(true);
-		infoBoxManager.addInfoBox(bankRunTimer);
+		removeBankTripTimer(true);
+		infoBoxManager.addInfoBox(bankTripTimer);
 	}
 
-	private void removeBankRunTimer(boolean preserveTimer)
+	private void removeBankTripTimer(boolean preserveTimer)
 	{
-		if (bankRunTimer == null)
+		if (bankTripTimer == null)
 		{
 			return;
 		}
 
-		infoBoxManager.removeInfoBox(bankRunTimer);
+		infoBoxManager.removeInfoBox(bankTripTimer);
 		if (!preserveTimer) {
-			bankRunTimer = null;
+			bankTripTimer = null;
 		}
 	}
 
@@ -277,13 +298,13 @@ public class ButlerInfoPlugin extends Plugin
 
 	public void renderAll() {
 		renderItemCounter();
-		renderBankRunTimer();
+		renderBankTripTimer();
 		renderTripsUntilPayment();
 	}
 
 	private void removeAll() {
 		removeItemCounter();
-		removeBankRunTimer(true);
+		removeBankTripTimer(true);
 		removeTripsUntilPayment();
 	}
 }

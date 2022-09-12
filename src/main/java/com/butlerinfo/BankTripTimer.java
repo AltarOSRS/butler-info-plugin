@@ -7,11 +7,11 @@ import net.runelite.client.ui.overlay.infobox.Timer;
 
 import java.time.temporal.ChronoUnit;
 
-public class BankRunTimer extends Timer
+public class BankTripTimer extends Timer
 {
-    BankRunTimer(Plugin plugin, Servant servant, ItemManager itemManager)
+    BankTripTimer(Plugin plugin, Servant servant, ItemManager itemManager)
     {
-        super(servant.getTicks() * 600L, ChronoUnit.MILLIS, itemManager.getImage(ItemID.WATCH), plugin);
+        super(servant.getType().getTicks() * 600L, ChronoUnit.MILLIS, itemManager.getImage(ItemID.WATCH), plugin);
         setTooltip("Time left until servant returns.");
     }
 }

@@ -63,7 +63,7 @@ public class DialogManager implements KeyListener
             case KeyEvent.VK_ENTER:
                 if (isEnteringAmount()) {
                     setEnteringAmount(false);
-                    plugin.getServant().sendOnBankRun();
+                    plugin.getServant().sendOnBankTrip();
                 }
                 break;
         }
@@ -105,7 +105,7 @@ public class DialogManager implements KeyListener
 
         ChatContinue chatContinue = ChatContinue.getByEvent(continueEvent);
         if(chatContinue != null) {
-            chatContinue.getAction().accept(continueEvent, chatContinue);
+            chatContinue.executeAction(continueEvent, chatContinue);
         }
     }
 
@@ -124,7 +124,7 @@ public class DialogManager implements KeyListener
 
         ChatOption chatOption = ChatOption.getByEvent(chatOptionEvent);
         if (chatOption != null) {
-            chatOption.getAction().accept(chatOptionEvent, chatOption);
+            chatOption.executeAction(chatOptionEvent, chatOption);
         }
     }
 }

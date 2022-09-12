@@ -2,38 +2,22 @@ package com.butlerinfo;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.runelite.api.NpcID;
 
-import javax.inject.Inject;
-import java.util.Optional;
-
-public enum Servant
+public class Servant
 {
-    RICK(NpcID.RICK, "Rick", 100),
-    MAID(NpcID.MAID, "Maid", 50),
-    COOK(NpcID.COOK, "Cook", 28),
-    BUTLER(NpcID.BUTLER, "Butler", 20),
-    DEMON_BUTLER(NpcID.DEMON_BUTLER, "Demon butler", 12);
-
     public static final int TRIPS_PER_PAYMENT = 8;
+
+    @Getter
+    private final ServantType type;
 
     @Setter
     private ButlerInfoPlugin plugin;
 
     @Getter
-    private final int npcId;
-
-    @Getter
-    private final String name;
-
-    @Getter
-    private final int ticks;
-
-    @Getter
     private ConstructionItem item;
 
     @Getter
-    private int itemAmount;
+    private int itemAmountHeld;
 
     @Getter
     private int tripsUntilPayment;
@@ -44,16 +28,22 @@ public enum Servant
 
     @Getter
     @Setter
-    private String paymentAmount;
+    private int paymentAmount;
 
-    Servant(int npcId, String name, int ticks)
+    @Getter
+    private int totalPayed;
+
+    @Getter
+    private int totalBankTripsMade;
+
+    Servant(ServantType type)
     {
-        this.npcId = npcId;
-        this.name = name;
-        this.ticks = ticks;
+        this.type = type;
         this.tripsUntilPayment = 0;
         this.prevTripsUntilPayment = 0;
-        this.itemAmount = 0;
+        this.itemAmountHeld = 0;
+        this.totalPayed = 0;
+        this.totalBankTripsMade = 0;
     }
 
     public void setItem(String itemName)
@@ -61,9 +51,9 @@ public enum Servant
         ConstructionItem.getByName(singularize(itemName)).ifPresent(item -> this.item = item);
     }
 
-    public void setItemAmount(int value)
+    public void setItemAmountHeld(int value)
     {
-        itemAmount = value;
+        itemAmountHeld = value;
         plugin.renderItemCounter();
     }
 
@@ -74,32 +64,30 @@ public enum Servant
         plugin.renderTripsUntilPayment();
     }
 
-    public void sendOnBankRun()
+    public void sendOnBankTrip()
     {
-        plugin.startBankRunTimer();
+        plugin.startBankTripTimer();
+        incrementTotalBankTripsMade();
         setTripsUntilPayment(tripsUntilPayment - 1);
     }
 
-    public void sendOnBankRun(String item)
+    public void sendOnBankTrip(String item)
     {
         setItem(item);
-        plugin.startBankRunTimer();
-        setTripsUntilPayment(tripsUntilPayment - 1);
+        sendOnBankTrip();
     }
 
-    public void finishBankRun(int itemAmount) {
+    public void finishBankTrip(int itemAmountHeld) {
         plugin.setBankTimerReset(false);
-        setItemAmount(itemAmount);
+        setItemAmountHeld(itemAmountHeld);
     }
 
-    public static Optional<Servant> getByNpcId(int npcId)
-    {
-        for (Servant servant : Servant.values()) {
-            if (servant.npcId == npcId) {
-                return Optional.of(servant);
-            }
-        }
-        return Optional.empty();
+    public void addPaymentToTotal(int paymentAmount) {
+        totalPayed += paymentAmount;
+    }
+
+    public void incrementTotalBankTripsMade() {
+        totalBankTripsMade++;
     }
 
     private String singularize(String item)

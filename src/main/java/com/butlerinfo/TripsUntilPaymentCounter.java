@@ -5,12 +5,15 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.ui.overlay.infobox.Counter;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 public class TripsUntilPaymentCounter extends Counter
 {
     TripsUntilPaymentCounter(Plugin plugin, Servant servant, ItemManager itemManager) {
         super(itemManager.getImage(
                     ItemID.COINS_995,
-                    Integer.parseInt(servant.getPaymentAmount().replaceAll(",", "")),
+                    servant.getPaymentAmount(),
                     false),
                 plugin,
                 servant.getTripsUntilPayment());
@@ -18,7 +21,7 @@ public class TripsUntilPaymentCounter extends Counter
         String tooltipText = String.format(
                 "%s bank trip(s) before you will have to pay %s gp",
                 servant.getTripsUntilPayment(),
-                servant.getPaymentAmount());
+                NumberFormat.getNumberInstance(Locale.US).format(servant.getPaymentAmount()));
         setTooltip(tooltipText);
     }
 }

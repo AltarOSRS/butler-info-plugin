@@ -10,8 +10,8 @@ public class ItemCounter extends Counter
     ItemCounter(Plugin plugin, Servant servant, ItemManager itemManager) {
         super(itemManager.getImage(servant.getItem() != null ? servant.getItem().getItemId() : ItemID.PLANK),
                 plugin,
-                servant.getItemAmount());
+                servant.getItemAmountHeld());
 
-        setTooltip(String.format("%s currently has %s %s(s)", servant.getName(), servant.getItemAmount(), servant.getItem().getName()));
+        setTooltip(String.format("%s currently has %s %s(s)", servant.getType().getName(), servant.getItemAmountHeld(), servant.getItem().getName()));
     }
 }
