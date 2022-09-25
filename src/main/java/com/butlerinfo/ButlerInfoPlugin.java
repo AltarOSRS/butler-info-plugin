@@ -114,10 +114,11 @@ public class ButlerInfoPlugin extends Plugin
 	@Override
 	protected void shutDown()
 	{
-		eventBus.register(playerOwnedHouse);
+		eventBus.unregister(playerOwnedHouse);
 		eventBus.unregister(dialogManager);
 		keyManager.unregisterKeyListener(dialogManager);
 		overlayManager.remove(servantOverlay);
+		removeAll();
 	}
 
 	@Subscribe
