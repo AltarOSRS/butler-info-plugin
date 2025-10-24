@@ -1,4 +1,4 @@
-package com.butlerinfo;
+package net.runelite.client.plugins.butlerinfo;
 
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -14,7 +14,6 @@ public class ServantOverlay extends OverlayPanel {
     private final ButlerInfoPlugin plugin;
 
     private final ButlerInfoConfig config;
-
     @Inject
     private ServantOverlay(ButlerInfoPlugin plugin, ButlerInfoConfig config)
     {
@@ -32,7 +31,7 @@ public class ServantOverlay extends OverlayPanel {
 
         if (config.showTotalAmountPayed()) {
             panelComponent.getChildren().add(LineComponent.builder()
-                    .left("Total gp payed:")
+                    .left("Total gp paid:")
                     .right(NumberFormat.getNumberInstance(Locale.US).format(plugin.getServant().getTotalPayed()))
                     .build());
         }

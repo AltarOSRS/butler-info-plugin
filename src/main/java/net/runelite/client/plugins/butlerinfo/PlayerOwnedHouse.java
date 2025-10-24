@@ -1,8 +1,10 @@
-package com.butlerinfo;
+package net.runelite.client.plugins.butlerinfo;
 
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Client;
+import net.runelite.api.gameval.VarbitID;
+// Corrected import path
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.client.eventbus.Subscribe;
 
@@ -11,19 +13,14 @@ import javax.inject.Inject;
 public class PlayerOwnedHouse
 {
     public static final int BUILDING_MODE_VARP = 780;
-
-    public static final int BUILDING_MODE_VARBIT = 2176;
-
     @Inject
     private Client client;
 
     @Getter
-    private ButlerInfoPlugin plugin;
-
+    private final ButlerInfoPlugin plugin;
     @Getter
     @Setter
     private boolean buildingMode;
-
     @Inject
     public PlayerOwnedHouse(ButlerInfoPlugin plugin)
     {
@@ -34,9 +31,9 @@ public class PlayerOwnedHouse
     @Subscribe
     public void onVarbitChanged(VarbitChanged event)
     {
-        if (event.getIndex() == PlayerOwnedHouse.BUILDING_MODE_VARP)
+        if (event.getVarpId() == PlayerOwnedHouse.BUILDING_MODE_VARP)
         {
-            setBuildingMode(client.getVarbitValue(PlayerOwnedHouse.BUILDING_MODE_VARBIT) == 1);
+            setBuildingMode(client.getVarbitValue(VarbitID.POH_BUILDING_MODE) == 1);
             if (plugin.getServant() != null) {
                 plugin.renderAll();
             }

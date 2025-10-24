@@ -1,32 +1,19 @@
-package com.butlerinfo;
+package net.runelite.client.plugins.butlerinfo;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
-
+@Slf4j
 public enum ChatContinue
 {
     NOT_ENOUGH_IN_BANK(
-        "^Master, I dearly wish that I could perform your instruction in full, but alas, I can only carry (\\d+) items.",
-        (event, option) -> {
-            event.getPlugin().getServant().sendOnBankTrip();
-        }),
-
-    SEND_ITEMS_BACK_CONFIRMATION(
-    "Very well, Master.",
-        (event, option) -> {
-            if(event.getPlugin().isSendingItemsBack()) {
-                event.getPlugin().setSendingItemsBack(false);
-                event.getPlugin().getServant().setItemAmountHeld(0);
-                event.getPlugin().startBankTripTimer();
-            }
-        }
-    );
+            "^Master, I dearly wish that I could perform your instruction in full, but alas, I can only carry (\\d+) items.",
+            (event, option) -> event.getPlugin().getServant().sendOnBankTrip());
 
     @Getter
     private final String text;
-
     private final BiConsumer<ChatContinueEvent, ChatContinue> action;
 
     ChatContinue(String text, BiConsumer<ChatContinueEvent, ChatContinue> action) {
@@ -46,11 +33,15 @@ public enum ChatContinue
     }
 
     public static ChatContinue getByEvent(ChatContinueEvent event) {
+        log.info("--- CHECKING ChatContinue MATCH ---");
+        log.info("Trying to match text: '{}'", event.getText());
         for (ChatContinue option : ChatContinue.values()) {
             if(option.getTextPattern().matcher(event.getText()).find()) {
+                log.info(">>> SUCCESS: Matched ChatContinue enum '{}'", option.name());
                 return option;
             }
         }
+        log.warn(">>> FAILED: No ChatContinue match found.");
         return null;
     }
 }
