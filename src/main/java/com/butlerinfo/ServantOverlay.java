@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.butlerinfo;
+package com.butlerinfo;
 
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;

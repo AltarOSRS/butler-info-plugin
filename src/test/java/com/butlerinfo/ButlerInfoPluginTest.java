@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.butlerinfo;
+package com.butlerinfo;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;

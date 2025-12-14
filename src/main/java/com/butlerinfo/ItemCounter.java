@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.butlerinfo;
+package com.butlerinfo;
 
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;

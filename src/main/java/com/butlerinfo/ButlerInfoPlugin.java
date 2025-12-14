@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.butlerinfo;
+package com.butlerinfo;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Provides;
